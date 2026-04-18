@@ -654,6 +654,11 @@ def get_upgrade_message(plan_name: str):
         return "同じ相手との流れをしっかり管理したいなら、スタンダードが向いています。"
     return "今のプランでは相手ごとの流れまで扱えます。"
 
+def get_model_name(plan_name: str) -> str:
+    if plan_name == "無料":
+        return "gpt-4.1-mini"
+    return "gpt-4.1"
+
 
 def render_paywall():
     st.markdown("""
@@ -961,7 +966,8 @@ system_prompt = """
 - 短くていい
 - 実際の行動に役立つ内容だけ書く
 
-▼出力形式（絶対厳守）
+▼出力形式
+有料プランでは以下の形式:
 
 【一言】
 （短く共感）
@@ -978,6 +984,19 @@ system_prompt = """
 2. 狙い：...
 2. ...
 3. 狙い：...
+3. ...
+
+【アドバイス】
+...
+
+無料プランでは以下の形式:
+
+【一言】
+（短く共感）
+
+【返信案】
+1. ...
+2. ...
 3. ...
 
 【アドバイス】
@@ -1051,15 +1070,24 @@ if generate_button:
             prompt += "\n無理に距離を縮めず、実際に送って違和感のない文面を優先してください。"
             prompt += "\n返信案はそのままコピペして使える完成文にしてください。"
             prompt += "\nラベル（無難・やさしめ・少し攻め等）は書かないでください。"
-            prompt += "\n判断パートは短く、返信パートより上に出してください。"
             prompt += "\n返信案は必ず3つ、改行区切りで、各案に文章を含めて出力してください。"
+
+            if st.session_state.plan == "無料":
+                prompt += "\n無料プランでは判断パートは省略してください。"
+                prompt += "\n無料プランでは各返信案の『狙い』も省略してください。"
+                prompt += "\n無料プランでは返信案3つと短いアドバイスだけを出してください。"
+            else:
+                prompt += "\n判断パートも含めて出力してください。"
+                prompt += "\n各返信案ごとに『狙い』も短く付けてください。"
 
             if st.session_state.usage_count == 0:
                 prompt += "\n初回なので特に自然で実用的な返信を優先してください。"
 
+                        model_name = get_model_name(st.session_state.plan)
+
             response = client.responses.create(
-                model="gpt-4.1",
-                max_output_tokens=360,
+                model=model_name,
+                max_output_tokens=220 if st.session_state.plan == "無料" else 360,
                 input=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": prompt}
