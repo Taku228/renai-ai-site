@@ -1083,7 +1083,7 @@ if generate_button:
             if st.session_state.usage_count == 0:
                 prompt += "\n初回なので特に自然で実用的な返信を優先してください。"
 
-                        model_name = get_model_name(st.session_state.plan)
+            model_name = get_model_name(st.session_state.plan)
 
             response = client.responses.create(
                 model=model_name,
