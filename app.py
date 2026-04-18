@@ -134,6 +134,25 @@ st.markdown("""
     margin-bottom: 0.8rem;
 }
 
+.judgement-box {
+    background: #f8fafc;
+    border: 1px solid #cbd5e1;
+    border-radius: 14px;
+    padding: 0.9rem;
+    margin-bottom: 0.9rem;
+}
+
+.meter-row {
+    margin: 0.25rem 0;
+}
+
+.reply-meta {
+    color: #475569;
+    font-size: 0.92rem;
+    margin-top: 0.2rem;
+    margin-bottom: 0.55rem;
+}
+
 hr.soft {
     border: none;
     border-top: 1px solid #e5e7eb;
@@ -184,7 +203,7 @@ div[data-testid="stSelectbox"] > div {
         margin-bottom: 0.75rem;
     }
 
-    .reply-card, .plan-card, .plan-card-highlight, .upgrade-box {
+    .reply-card, .plan-card, .plan-card-highlight, .upgrade-box, .judgement-box {
         border-radius: 14px;
         padding: 0.85rem;
         margin-bottom: 0.75rem;
@@ -267,12 +286,19 @@ defaults = {
     "extra_context": "",
     "result_text": "",
     "parsed_replies": [],
+    "reply_intents": [],
     "advice_text": "",
     "summary_text": "",
     "plan": "無料",
     "chat_history": [],
     "partner_histories": {},
     "last_memory_preview": "",
+    "judgement": {
+        "interest_score": "",
+        "safety_score": "",
+        "push_pull": "",
+        "temperature": ""
+    },
 }
 for key, value in defaults.items():
     if key not in st.session_state:
@@ -354,9 +380,16 @@ def reset_form():
     st.session_state.extra_context = ""
     st.session_state.result_text = ""
     st.session_state.parsed_replies = []
+    st.session_state.reply_intents = []
     st.session_state.advice_text = ""
     st.session_state.summary_text = ""
     st.session_state.last_memory_preview = ""
+    st.session_state.judgement = {
+        "interest_score": "",
+        "safety_score": "",
+        "push_pull": "",
+        "temperature": ""
+    }
 
 
 def build_template_text(template_name: str) -> str:
@@ -375,10 +408,32 @@ def parse_result_text(text: str):
     summary = ""
     advice = ""
     replies = []
+    reply_intents = []
+    judgement = {
+        "interest_score": "",
+        "safety_score": "",
+        "push_pull": "",
+        "temperature": ""
+    }
 
-    summary_match = re.search(r"【一言】\s*(.*?)\s*【返信案】", text, re.DOTALL)
+    summary_match = re.search(r"【一言】\s*(.*?)\s*【判断】", text, re.DOTALL)
+    if not summary_match:
+        summary_match = re.search(r"【一言】\s*(.*?)\s*【返信案】", text, re.DOTALL)
     if summary_match:
         summary = summary_match.group(1).strip()
+
+    judgement_block_match = re.search(r"【判断】\s*(.*?)\s*【返信案】", text, re.DOTALL)
+    if judgement_block_match:
+        judgement_block = judgement_block_match.group(1).strip()
+        for line in [x.strip() for x in judgement_block.splitlines() if x.strip()]:
+            if "脈あり度" in line:
+                judgement["interest_score"] = re.sub(r"^[-・]?\s*", "", line)
+            elif "安全度" in line:
+                judgement["safety_score"] = re.sub(r"^[-・]?\s*", "", line)
+            elif "押す" in line or "引く" in line or "今は" in line:
+                judgement["push_pull"] = re.sub(r"^[-・]?\s*", "", line)
+            elif "温度感" in line:
+                judgement["temperature"] = re.sub(r"^[-・]?\s*", "", line)
 
     advice_match = re.search(r"【アドバイス】\s*(.*)", text, re.DOTALL)
     if advice_match:
@@ -388,12 +443,24 @@ def parse_result_text(text: str):
     if replies_block_match:
         replies_block = replies_block_match.group(1).strip()
         lines = [line.strip() for line in replies_block.splitlines() if line.strip()]
-        for line in lines:
-            cleaned = re.sub(r"^\d+\.\s*", "", line).strip()
-            if cleaned:
-                replies.append(cleaned)
 
-    return summary, replies, advice
+        current_intent = ""
+        for line in lines:
+            intent_match = re.match(r"^\d+\.\s*狙い[:：]\s*(.+)$", line)
+            if intent_match:
+                current_intent = intent_match.group(1).strip()
+                continue
+
+            reply_match = re.match(r"^\d+\.\s*(.+)$", line)
+            if reply_match:
+                cleaned = reply_match.group(1).strip()
+                cleaned = re.sub(r"^（[^）]+）\s*", "", cleaned).strip()
+                if cleaned and len(cleaned) >= 6:
+                    replies.append(cleaned)
+                    reply_intents.append(current_intent if current_intent else "")
+                    current_intent = ""
+
+    return summary, replies[:3], reply_intents[:3], advice, judgement
 
 
 def build_full_copy_text(replies, advice):
@@ -446,13 +513,15 @@ def copy_button_component(text: str, label: str, key_suffix: str):
     )
 
 
-def show_reply_card(index: int, label: str, reply: str):
+def show_reply_card(index: int, reply: str, intent: str):
     st.markdown(f"""
     <div class="reply-card">
-        <div class="badge">{index}. {label}</div>
+        <div class="badge">返信案 {index}</div>
         <div style="font-size:1rem; line-height:1.8; color:#0f172a; word-break:break-word;">{html.escape(reply)}</div>
     </div>
     """, unsafe_allow_html=True)
+    if intent:
+        st.markdown(f"<div class='reply-meta'>狙い：{html.escape(intent)}</div>", unsafe_allow_html=True)
     copy_button_component(reply, f"{index}番をコピー", f"reply_{index}")
 
 
@@ -563,7 +632,6 @@ plan_cfg = PLAN_CONFIG[st.session_state.plan]
 FREE_LIMIT_PER_SESSION = plan_cfg["session_limit"]
 DAILY_LIMIT_ALL = plan_cfg["daily_limit"]
 
-# 有料プランの疑似ロック
 if st.session_state.plan in PAID_PLANS:
     st.warning("このプランは現在テスト中です。")
     unlock_code = st.text_input("有料プラン用コードを入力", type="password")
@@ -748,7 +816,8 @@ system_prompt = """
 あなたは恋愛経験が豊富で、LINEのやり取りが上手い男性の相談役です。
 ユーザーは20代男性で、恋愛経験が少なく、実際に送る返信に悩んでいます。
 
-あなたの役割は「そのまま送っても自然でうまくいきやすい返信」を作ることです。
+あなたの役割は「そのまま送っても自然でうまくいきやすい返信」を作ることに加え、
+今この返信を送って大丈夫かどうかを判断し、失敗しにくい方向へ導くことです。
 
 ▼重要ルール（最優先）
 - 必ず「実際に送る前提」で書く
@@ -762,31 +831,34 @@ system_prompt = """
 - 押すべきか引くべきかを判断する
 - ユーザーの目的と相手の温度感がズレる場合は、無理に攻めすぎない
 
+▼判断パートについて
+- 脈あり度は 0〜100% で出す
+- 安全度は ★1〜5 で出す
+- 押す / 引く / 様子見 のどれが良いか短く出す
+- 温度感も短く出す
+- すべて短く、わかりやすく書く
+- 断定しすぎない
+
 ▼返信案の作り方（かなり重要）
-3つとも必ずキャラを変える
-
-1つ目：
-→ 最も無難で自然（そのまま送ってOK）
-
-2つ目：
-→ やさしくて好印象（少し好意を乗せる）
-
-3つ目：
-→ 少しだけ距離を縮める（軽く攻める）
-
-▼返信案の補足ルール
-- 各返信の前に「どういう時に使うか」を短く一言で書く
-- ラベルは必ず3つとも違う意味にする
-- 同じニュアンスは禁止
+- 3つとも必ずキャラを変える
+- 1つ目は最も無難で自然
+- 2つ目はやさしくて好印象
+- 3つ目は少しだけ距離を縮める
+- ただし、出力にはラベルを書かない
+- 3つともそのままコピペして使える完成文にする
+- 3つとも必ず文章を含める
+- 1行に1案ずつ出す
+- 各返信案ごとに「狙い」を1行で短く付ける
 
 ▼NG例
 - 同じような文章を3つ
 - 丁寧すぎて会話にならない
 - わざとらしい優しさ
 - モテテクっぽすぎる文章
+- ラベルだけの出力
 
 ▼理想
-「これなら普通に送る」「ちょっといい感じになるかも」と思えるレベル
+「これなら普通に送る」「ちょっといい感じになるかも」「今は攻めすぎない方がいい」が直感でわかること
 
 ▼アドバイスについて
 - 短くていい
@@ -797,10 +869,19 @@ system_prompt = """
 【一言】
 （短く共感）
 
+【判断】
+・脈あり度：...
+・安全度：...
+・今は：...
+・温度感：...
+
 【返信案】
-1.（無難）...
-2.（やさしめ）...
-3.（少し攻め）...
+1. 狙い：...
+1. ...
+2. 狙い：...
+2. ...
+3. 狙い：...
+3. ...
 
 【アドバイス】
 ...
@@ -871,13 +952,17 @@ if generate_button:
             prompt += "\n不自然な表現やテンプレ感は絶対に避けてください。"
             prompt += "\n相手の温度感を判断して、その温度感に合った自然な返信を作ってください。"
             prompt += "\n無理に距離を縮めず、実際に送って違和感のない文面を優先してください。"
+            prompt += "\n返信案はそのままコピペして使える完成文にしてください。"
+            prompt += "\nラベル（無難・やさしめ・少し攻め等）は書かないでください。"
+            prompt += "\n判断パートは短く、返信パートより上に出してください。"
+            prompt += "\n返信案は必ず3つ、改行区切りで、各案に文章を含めて出力してください。"
 
             if st.session_state.usage_count == 0:
                 prompt += "\n初回なので特に自然で実用的な返信を優先してください。"
 
             response = client.responses.create(
                 model="gpt-4.1",
-                max_output_tokens=260,
+                max_output_tokens=360,
                 input=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": prompt}
@@ -885,12 +970,18 @@ if generate_button:
             )
 
             result_text = response.output_text
-            summary_text, parsed_replies, advice_text = parse_result_text(result_text)
+            summary_text, parsed_replies, reply_intents, advice_text, judgement = parse_result_text(result_text)
+
+            if len(parsed_replies) < 3:
+                parsed_replies = [r for r in parsed_replies if len(r) >= 6]
+                reply_intents = reply_intents[:len(parsed_replies)]
 
             st.session_state.result_text = result_text
             st.session_state.parsed_replies = parsed_replies
+            st.session_state.reply_intents = reply_intents
             st.session_state.advice_text = advice_text
             st.session_state.summary_text = summary_text
+            st.session_state.judgement = judgement
             st.session_state.usage_count += 1
             st.session_state.daily_total_count += 1
             st.session_state.last_request_time = time.time()
@@ -932,15 +1023,33 @@ if st.session_state.result_text:
     if st.session_state.summary_text:
         st.success(st.session_state.summary_text)
 
+    judgement = st.session_state.judgement
+    if any(judgement.values()):
+        st.markdown("""
+        <div class="judgement-box">
+            <div style="font-weight:800; margin-bottom:0.45rem;">判断</div>
+        """, unsafe_allow_html=True)
+
+        if judgement.get("interest_score"):
+            st.markdown(f"<div class='meter-row'>{html.escape(judgement['interest_score'])}</div>", unsafe_allow_html=True)
+        if judgement.get("safety_score"):
+            st.markdown(f"<div class='meter-row'>{html.escape(judgement['safety_score'])}</div>", unsafe_allow_html=True)
+        if judgement.get("push_pull"):
+            st.markdown(f"<div class='meter-row'>{html.escape(judgement['push_pull'])}</div>", unsafe_allow_html=True)
+        if judgement.get("temperature"):
+            st.markdown(f"<div class='meter-row'>{html.escape(judgement['temperature'])}</div>", unsafe_allow_html=True)
+
+        st.markdown("</div>", unsafe_allow_html=True)
+
     replies = st.session_state.parsed_replies
+    reply_intents = st.session_state.reply_intents
     advice = st.session_state.advice_text
 
     if replies:
         st.markdown("### 返信案")
-        labels = ["おすすめ", "やわらかめ", "軽め"]
         for idx, reply in enumerate(replies, start=1):
-            label = labels[idx - 1] if idx - 1 < len(labels) else f"案{idx}"
-            show_reply_card(idx, label, reply)
+            intent = reply_intents[idx - 1] if idx - 1 < len(reply_intents) else ""
+            show_reply_card(idx, reply, intent)
 
     if advice:
         st.markdown('<hr class="soft">', unsafe_allow_html=True)
@@ -968,19 +1077,11 @@ if st.session_state.result_text:
             <b>この先が有料プラン向きです</b><br>
             ・前回の流れを踏まえた続き相談<br>
             ・同じ相手とのやり取りを記憶<br>
-            ・毎回説明しなくても自然な返信提案<br><br>
+            ・毎回説明しなくても自然な返信提案<br>
+            ・送って大丈夫かの判断を見ながら相談<br><br>
             今回の返信の続きを相談したい人は、ライト以上が向いています。
         </div>
         """, unsafe_allow_html=True)
-
-        st.markdown("""
-        ### この後こういう使い方ができます
-        - この返信を送った後、相手の返事を続けて相談
-        - 同じ相手との流れを記憶して相談
-        - 前回のやり取りを踏まえた、より自然な提案
-
-        🔒 これらは有料プラン向けの機能です
-        """)
 
     if st.session_state.plan == "無料" and st.session_state.usage_count >= 1:
         st.markdown("""
@@ -1002,7 +1103,7 @@ if st.session_state.result_text:
         st.text_area(
             "全文",
             value=st.session_state.result_text,
-            height=220,
+            height=260,
             key="raw_result_text"
         )
 
