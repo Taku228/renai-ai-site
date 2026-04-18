@@ -359,7 +359,7 @@ def render_tokutei_page():
 
     st.page_link("app.py", label="アプリに戻る", icon="↩️")
 
-    if page_mode == "law":
+if page_mode == "law":
     render_tokutei_page()
     st.stop()
 
