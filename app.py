@@ -257,12 +257,6 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 def render_tokutei_page():
-    st.set_page_config(
-        page_title="特定商取引法に基づく表記",
-        page_icon="📄",
-        layout="centered"
-    )
-
     st.markdown("""
     <style>
     .law-card {
@@ -296,12 +290,12 @@ def render_tokutei_page():
 
         <div class="law-row">
             <div class="law-label">販売事業者</div>
-            <div>あなたの氏名または事業者名</div>
+            <div>小倉拓人</div>
         </div>
 
         <div class="law-row">
             <div class="law-label">運営責任者</div>
-            <div>あなたの氏名</div>
+            <div>小倉拓人</div>
         </div>
 
         <div class="law-row">
@@ -311,7 +305,7 @@ def render_tokutei_page():
 
         <div class="law-row">
             <div class="law-label">メールアドレス</div>
-            <div>yourmail@example.com</div>
+            <div>taku.child.0228@gmail.com</div>
         </div>
 
         <div class="law-row">
