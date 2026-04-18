@@ -17,8 +17,57 @@ st.set_page_config(
     layout="centered"
 )
 
+# ----------------------------
+# 特商法ページ切替
+# ----------------------------
 query_params = st.query_params
 page_mode = query_params.get("page", "app")
+
+
+def render_tokutei_page():
+    st.title("特定商取引法に基づく表記")
+
+    st.subheader("販売事業者")
+    st.write("あなたの氏名または事業者名")
+
+    st.subheader("運営責任者")
+    st.write("あなたの氏名")
+
+    st.subheader("所在地")
+    st.write("請求があった場合、遅滞なく開示します。")
+
+    st.subheader("メールアドレス")
+    st.write("yourmail@example.com")
+
+    st.subheader("販売価格")
+    st.write("ライトプラン：月額580円（税込）")
+    st.write("スタンダードプラン：月額980円（税込）")
+
+    st.subheader("商品代金以外の必要料金")
+    st.write("インターネット接続料金、通信料金等はお客様のご負担となります。")
+
+    st.subheader("支払方法")
+    st.write("クレジットカード決済（Stripe）")
+
+    st.subheader("支払時期")
+    st.write("サブスクリプション申込時に決済され、その後は契約内容に応じて毎月自動更新されます。")
+
+    st.subheader("サービス提供時期")
+    st.write("決済完了後、直ちに利用可能です。")
+
+    st.subheader("返品・キャンセルについて")
+    st.write("デジタルサービスの性質上、購入後の返品・返金には原則として応じられません。")
+    st.write("解約は次回更新日前までに所定の方法で行うことで、翌月以降の請求を停止できます。")
+
+    st.subheader("動作環境")
+    st.write("インターネット接続可能なスマートフォンまたはPCの最新ブラウザ環境")
+
+    st.link_button("↩️ アプリに戻る", "./")
+
+
+if page_mode == "law":
+    render_tokutei_page()
+    st.stop()
 
 # ----------------------------
 # CSS
@@ -145,6 +194,15 @@ st.markdown("""
     margin-bottom: 0.9rem;
 }
 
+.paywall-box {
+    background: #eff6ff;
+    border: 1px solid #93c5fd;
+    border-radius: 14px;
+    padding: 1rem;
+    margin-top: 0.8rem;
+    margin-bottom: 0.9rem;
+}
+
 .meter-row {
     margin: 0.25rem 0;
 }
@@ -206,7 +264,7 @@ div[data-testid="stSelectbox"] > div {
         margin-bottom: 0.75rem;
     }
 
-    .reply-card, .plan-card, .plan-card-highlight, .upgrade-box, .judgement-box {
+    .reply-card, .plan-card, .plan-card-highlight, .upgrade-box, .judgement-box, .paywall-box {
         border-radius: 14px;
         padding: 0.85rem;
         margin-bottom: 0.75rem;
@@ -256,58 +314,13 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-def render_tokutei_page():
-    st.title("特定商取引法に基づく表記")
-
-    st.subheader("販売事業者")
-    st.write("小倉拓人")
-
-    st.subheader("運営責任者")
-    st.write("小倉拓人")
-
-    st.subheader("所在地")
-    st.write("請求があった場合、遅滞なく開示します。")
-
-    st.subheader("メールアドレス")
-    st.write("taku.child.0228@gmail.com")
-
-    st.subheader("販売価格")
-    st.write("ライトプラン：月額580円（税込）")
-    st.write("スタンダードプラン：月額980円（税込）")
-
-    st.subheader("商品代金以外の必要料金")
-    st.write("インターネット接続料金、通信料金等はお客様のご負担となります。")
-
-    st.subheader("支払方法")
-    st.write("クレジットカード決済（Stripe）")
-
-    st.subheader("支払時期")
-    st.write("サブスクリプション申込時に決済され、その後は契約内容に応じて毎月自動更新されます。")
-
-    st.subheader("サービス提供時期")
-    st.write("決済完了後、直ちに利用可能です。")
-
-    st.subheader("返品・キャンセルについて")
-    st.write("デジタルサービスの性質上、購入後の返品・返金には原則として応じられません。")
-    st.write("解約は次回更新日前までに所定の方法で行うことで、翌月以降の請求を停止できます。")
-
-    st.subheader("動作環境")
-    st.write("インターネット接続可能なスマートフォンまたはPCの最新ブラウザ環境")
-
-    st.link_button("↩️ アプリに戻る", "./")
-
-query_params = st.query_params
-page_mode = query_params.get("page", "app")
-
-if page_mode == "law":
-    render_tokutei_page()
-    st.stop()
-
 # ----------------------------
 # 環境変数
 # ----------------------------
 api_key = os.getenv("OPENAI_API_KEY")
 access_code = os.getenv("APP_ACCESS_CODE")
+stripe_light_url = os.getenv("STRIPE_LIGHT_URL", "")
+stripe_standard_url = os.getenv("STRIPE_STANDARD_URL", "")
 
 if not api_key:
     st.error("OPENAI_API_KEY が設定されていません。")
@@ -343,6 +356,7 @@ defaults = {
     "chat_history": [],
     "partner_histories": {},
     "last_memory_preview": "",
+    "show_paywall": False,
     "judgement": {
         "interest_score": "",
         "safety_score": "",
@@ -434,6 +448,7 @@ def reset_form():
     st.session_state.advice_text = ""
     st.session_state.summary_text = ""
     st.session_state.last_memory_preview = ""
+    st.session_state.show_paywall = False
     st.session_state.judgement = {
         "interest_score": "",
         "safety_score": "",
@@ -640,6 +655,37 @@ def get_upgrade_message(plan_name: str):
     return "今のプランでは相手ごとの流れまで扱えます。"
 
 
+def render_paywall():
+    st.markdown("""
+    <div class="paywall-box">
+        <div style="font-size:1.05rem; font-weight:800; margin-bottom:0.4rem;">
+            🔒 この先は有料機能です
+        </div>
+        <div style="line-height:1.8;">
+            この返信について、さらに次の内容を確認できます。<br>
+            ・この返信の安全度<br>
+            ・脈あり度の見立て<br>
+            ・今は押すべきか引くべきか<br>
+            ・次の一手の提案
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown("### ライトプラン（月額580円想定）")
+    st.caption("返信の続き相談や、送信前の判断支援を使いたい人向けです。")
+    if stripe_light_url:
+        st.link_button("ライトプランを開始する", stripe_light_url, use_container_width=True)
+    else:
+        st.info("Stripeリンクを設定すると、ここから購入できるようになります。")
+
+    st.markdown("### スタンダードプラン（月額980円想定）")
+    st.caption("相手ごとの流れを踏まえて、より深く相談したい人向けです。")
+    if stripe_standard_url:
+        st.link_button("スタンダードを開始する", stripe_standard_url, use_container_width=True)
+    else:
+        st.info("Stripeリンクを設定すると、ここから購入できるようになります。")
+
+
 # ----------------------------
 # 合言葉チェック
 # ----------------------------
@@ -676,6 +722,7 @@ if selected_plan != st.session_state.plan:
     st.session_state.usage_count = 0
     st.session_state.daily_total_count = 0
     st.session_state.last_memory_preview = ""
+    st.session_state.show_paywall = False
     st.rerun()
 
 plan_cfg = PLAN_CONFIG[st.session_state.plan]
@@ -1074,7 +1121,8 @@ if st.session_state.result_text:
         st.success(st.session_state.summary_text)
 
     judgement = st.session_state.judgement
-    if any(judgement.values()):
+
+    if st.session_state.plan != "無料" and any(judgement.values()):
         st.markdown("""
         <div class="judgement-box">
             <div style="font-weight:800; margin-bottom:0.45rem;">判断</div>
@@ -1090,6 +1138,27 @@ if st.session_state.result_text:
             st.markdown(f"<div class='meter-row'>{html.escape(judgement['temperature'])}</div>", unsafe_allow_html=True)
 
         st.markdown("</div>", unsafe_allow_html=True)
+
+    elif st.session_state.plan == "無料":
+        st.markdown("""
+        <div class="judgement-box">
+            <div style="font-weight:800; margin-bottom:0.45rem;">🔒 送る前の判断</div>
+            <div style="line-height:1.8;">
+                この返信の安全度、脈あり度、押すべきか引くべきかは<br>
+                有料プランで確認できます。
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        col_a, col_b = st.columns(2)
+        with col_a:
+            if st.button("この返信を評価する（有料）", use_container_width=True):
+                st.session_state.show_paywall = True
+                st.rerun()
+        with col_b:
+            if st.button("次の一手を知る（有料）", use_container_width=True):
+                st.session_state.show_paywall = True
+                st.rerun()
 
     replies = st.session_state.parsed_replies
     reply_intents = st.session_state.reply_intents
@@ -1140,6 +1209,9 @@ if st.session_state.result_text:
             ライト以上なら、直前のやり取りを考慮して次の返信を提案できます。
         </div>
         """, unsafe_allow_html=True)
+
+    if st.session_state.plan == "無料" and st.session_state.get("show_paywall"):
+        render_paywall()
 
     if st.session_state.plan != "スタンダード":
         st.markdown(f"""
