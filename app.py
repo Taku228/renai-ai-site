@@ -357,7 +357,7 @@ def render_tokutei_page():
     </div>
     """, unsafe_allow_html=True)
 
-    st.page_link("app.py", label="アプリに戻る", icon="↩️")
+    st.markdown("[↩️ アプリに戻る](./)")
 
 if page_mode == "law":
     render_tokutei_page()
