@@ -17,6 +17,9 @@ st.set_page_config(
     layout="centered"
 )
 
+query_params = st.query_params
+page_mode = query_params.get("page", "app")
+
 # ----------------------------
 # CSS
 # ----------------------------
@@ -252,6 +255,113 @@ st.markdown("""
     </div>
 </div>
 """, unsafe_allow_html=True)
+
+def render_tokutei_page():
+    st.set_page_config(
+        page_title="特定商取引法に基づく表記",
+        page_icon="📄",
+        layout="centered"
+    )
+
+    st.markdown("""
+    <style>
+    .law-card {
+        background: #ffffff;
+        border: 1px solid #e5e7eb;
+        border-radius: 18px;
+        padding: 1.2rem;
+        margin-top: 1rem;
+        margin-bottom: 1rem;
+        box-shadow: 0 8px 24px rgba(15, 23, 42, 0.05);
+    }
+    .law-title {
+        font-size: 1.7rem;
+        font-weight: 800;
+        margin-bottom: 1rem;
+    }
+    .law-row {
+        margin-bottom: 1rem;
+        line-height: 1.8;
+    }
+    .law-label {
+        font-weight: 700;
+        margin-bottom: 0.2rem;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
+    st.markdown("""
+    <div class="law-card">
+        <div class="law-title">特定商取引法に基づく表記</div>
+
+        <div class="law-row">
+            <div class="law-label">販売事業者</div>
+            <div>あなたの氏名または事業者名</div>
+        </div>
+
+        <div class="law-row">
+            <div class="law-label">運営責任者</div>
+            <div>あなたの氏名</div>
+        </div>
+
+        <div class="law-row">
+            <div class="law-label">所在地</div>
+            <div>請求があった場合、遅滞なく開示します。</div>
+        </div>
+
+        <div class="law-row">
+            <div class="law-label">メールアドレス</div>
+            <div>yourmail@example.com</div>
+        </div>
+
+        <div class="law-row">
+            <div class="law-label">販売価格</div>
+            <div>
+                ライトプラン：月額580円（税込）<br>
+                スタンダードプラン：月額980円（税込）
+            </div>
+        </div>
+
+        <div class="law-row">
+            <div class="law-label">商品代金以外の必要料金</div>
+            <div>インターネット接続料金、通信料金等はお客様のご負担となります。</div>
+        </div>
+
+        <div class="law-row">
+            <div class="law-label">支払方法</div>
+            <div>クレジットカード決済（Stripe）</div>
+        </div>
+
+        <div class="law-row">
+            <div class="law-label">支払時期</div>
+            <div>サブスクリプション申込時に決済され、その後は契約内容に応じて毎月自動更新されます。</div>
+        </div>
+
+        <div class="law-row">
+            <div class="law-label">サービス提供時期</div>
+            <div>決済完了後、直ちに利用可能です。</div>
+        </div>
+
+        <div class="law-row">
+            <div class="law-label">返品・キャンセルについて</div>
+            <div>
+                デジタルサービスの性質上、購入後の返品・返金には原則として応じられません。<br>
+                解約は次回更新日前までに所定の方法で行うことで、翌月以降の請求を停止できます。
+            </div>
+        </div>
+
+        <div class="law-row">
+            <div class="law-label">動作環境</div>
+            <div>インターネット接続可能なスマートフォンまたはPCの最新ブラウザ環境</div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.page_link("app.py", label="アプリに戻る", icon="↩️")
+
+    if page_mode == "law":
+    render_tokutei_page()
+    st.stop()
 
 # ----------------------------
 # 環境変数
