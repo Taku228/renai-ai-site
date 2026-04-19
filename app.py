@@ -28,16 +28,16 @@ def render_tokutei_page():
     st.title("特定商取引法に基づく表記")
 
     st.subheader("販売事業者")
-    st.write("あなたの氏名または事業者名")
+    st.write("小倉　拓人")
 
     st.subheader("運営責任者")
-    st.write("あなたの氏名")
+    st.write("小倉　拓人")
 
     st.subheader("所在地")
-    st.write("請求があった場合、遅滞なく開示します。")
+    st.write("日本国内（詳細住所は請求があった場合、遅滞なく開示いたします）")
 
     st.subheader("メールアドレス")
-    st.write("yourmail@example.com")
+    st.write("taku.child.0228@gmail.com")
 
     st.subheader("販売価格")
     st.write("ライトプラン：月額580円（税込）")
