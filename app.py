@@ -74,74 +74,108 @@ if page_mode == "law":
 # ----------------------------
 st.markdown("""
 <style>
+
+/* ===== レイアウト（最重要） ===== */
 .block-container {
-    padding-top: 1.8rem;
-    padding-bottom: 2.2rem;
+    padding-top: 5.5rem;
+    padding-bottom: 2rem;
     max-width: 860px;
 }
 
+/* スマホ用 */
+@media (max-width: 640px) {
+    .block-container {
+        padding-top: 6.5rem;
+        padding-left: 0.7rem;
+        padding-right: 0.7rem;
+        padding-bottom: 1.5rem;
+    }
+}
+
+/* ===== カード共通 ===== */
+.main-card,
+.section-card,
+.reply-card,
+.plan-card,
+.plan-card-highlight,
+.memory-box,
+.upgrade-box,
+.judgement-box,
+.paywall-box {
+    border-radius: 16px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    line-height: 1.7;
+    color: #0f172a !important;
+}
+
+.main-card *,
+.section-card *,
+.reply-card *,
+.plan-card *,
+.plan-card-highlight *,
+.memory-box *,
+.upgrade-box *,
+.judgement-box *,
+.paywall-box * {
+    color: #0f172a !important;
+}
+
+/* ===== カード個別 ===== */
 .main-card {
-    background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+    background: #ffffff;
     border: 1px solid #e5e7eb;
-    border-radius: 20px;
-    padding: 1.1rem 1.1rem 0.95rem 1.1rem;
-    margin-top: 0.4rem;
-    margin-bottom: 0.9rem;
-    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
 }
 
 .section-card {
     background: #ffffff;
     border: 1px solid #e5e7eb;
-    border-radius: 18px;
-    padding: 0.95rem 0.95rem 0.55rem 0.95rem;
-    margin-bottom: 0.9rem;
-    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.04);
 }
 
 .reply-card {
     background: #ffffff;
     border: 1px solid #dbeafe;
-    border-radius: 16px;
-    padding: 0.95rem;
-    margin-bottom: 0.8rem;
-    box-shadow: 0 8px 20px rgba(37, 99, 235, 0.06);
 }
 
 .plan-card {
-    background: #f8fafc;
-    border: 1px solid #e2e8f0;
-    border-radius: 14px;
-    padding: 0.85rem;
-    margin-bottom: 0.8rem;
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
 }
 
 .plan-card-highlight {
-    background: linear-gradient(180deg, #eff6ff 0%, #f8fafc 100%);
-    border: 1px solid #93c5fd;
-    border-radius: 14px;
-    padding: 0.85rem;
-    margin-bottom: 0.8rem;
-}
-
-.badge {
-    display: inline-block;
     background: #eff6ff;
-    color: #1d4ed8;
-    border: 1px solid #bfdbfe;
-    padding: 0.22rem 0.56rem;
-    border-radius: 999px;
-    font-size: 0.8rem;
-    font-weight: 700;
-    margin-bottom: 0.55rem;
+    border: 1px solid #3b82f6;
 }
 
-.small-note {
-    color: #64748b;
-    font-size: 0.92rem;
-    line-height: 1.6;
+.memory-box {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
 }
 
+/* ===== 課金導線 ===== */
+.upgrade-box {
+    background: #fff7ed;
+    border: 1px solid #fb923c;
+    color: #7c2d12 !important;
+}
+
+.upgrade-box * {
+    color: #7c2d12 !important;
+}
+
+/* ===== 判定ボックス ===== */
+.judgement-box {
+    background: #ecfeff;
+    border: 1px solid #67e8f9;
+}
+
+/* ===== ペイウォール ===== */
+.paywall-box {
+    background: #fef3c7;
+    border: 1px solid #f59e0b;
+}
+
+/* ===== テキスト ===== */
 .app-title {
     font-size: 1.72rem;
     font-weight: 800;
@@ -150,7 +184,7 @@ st.markdown("""
 }
 
 .app-subtitle {
-    color: #475569;
+    color: #475569 !important;
     font-size: 0.98rem;
     line-height: 1.6;
     margin-bottom: 0.18rem;
@@ -168,50 +202,27 @@ st.markdown("""
     margin-bottom: 0.35rem;
 }
 
-.memory-box {
-    background: #f8fafc;
-    border: 1px dashed #cbd5e1;
-    border-radius: 12px;
-    padding: 0.8rem;
-    margin-top: 0.5rem;
-    margin-bottom: 0.7rem;
+.small-note,
+.reply-meta,
+.copy-help {
+    color: #475569 !important;
+    font-size: 0.95rem;
 }
 
-.upgrade-box {
-    background: #fff7ed;
-    border: 1px solid #fdba74;
-    border-radius: 14px;
-    padding: 0.9rem;
-    margin-top: 0.8rem;
-    margin-bottom: 0.8rem;
-}
-
-.judgement-box {
-    background: #f8fafc;
-    border: 1px solid #cbd5e1;
-    border-radius: 14px;
-    padding: 0.9rem;
-    margin-bottom: 0.9rem;
-}
-
-.paywall-box {
+.badge {
+    display: inline-block;
+    font-size: 0.85rem;
+    font-weight: 700;
+    padding: 0.25rem 0.55rem;
+    border-radius: 999px;
     background: #eff6ff;
-    border: 1px solid #93c5fd;
-    border-radius: 14px;
-    padding: 1rem;
-    margin-top: 0.8rem;
-    margin-bottom: 0.9rem;
+    color: #1d4ed8 !important;
+    border: 1px solid #bfdbfe;
+    margin-bottom: 0.55rem;
 }
 
 .meter-row {
     margin: 0.25rem 0;
-}
-
-.reply-meta {
-    color: #475569;
-    font-size: 0.92rem;
-    margin-top: 0.2rem;
-    margin-bottom: 0.55rem;
 }
 
 hr.soft {
@@ -220,10 +231,12 @@ hr.soft {
     margin: 0.95rem 0 0.8rem 0;
 }
 
-div[data-testid="stButton"] > button {
+/* ===== ボタン ===== */
+.stButton > button {
     border-radius: 12px;
-    min-height: 48px;
+    padding: 0.6rem 1rem;
     font-weight: 700;
+    min-height: 48px;
     font-size: 0.98rem;
 }
 
@@ -237,37 +250,19 @@ div[data-testid="stSelectbox"] > div {
     border-radius: 12px;
 }
 
-.copy-help {
-    color: #64748b;
-    font-size: 0.87rem;
-    margin-top: 0.2rem;
-}
-
+/* ===== スマホ微調整 ===== */
 @media (max-width: 640px) {
-    .block-container {
-        padding-top: 1.2rem;
-        padding-left: 0.75rem;
-        padding-right: 0.75rem;
-        padding-bottom: 1.5rem;
-    }
-
-    .main-card {
-        border-radius: 16px;
-        padding: 0.95rem 0.9rem 0.85rem 0.9rem;
-        margin-top: 0.25rem;
-        margin-bottom: 0.75rem;
-    }
-
-    .section-card {
-        border-radius: 15px;
-        padding: 0.8rem 0.8rem 0.45rem 0.8rem;
-        margin-bottom: 0.75rem;
-    }
-
-    .reply-card, .plan-card, .plan-card-highlight, .upgrade-box, .judgement-box, .paywall-box {
-        border-radius: 14px;
-        padding: 0.85rem;
-        margin-bottom: 0.75rem;
+    .main-card,
+    .section-card,
+    .reply-card,
+    .plan-card,
+    .plan-card-highlight,
+    .memory-box,
+    .upgrade-box,
+    .judgement-box,
+    .paywall-box {
+        padding: 0.9rem;
+        font-size: 0.95rem;
     }
 
     .app-title {
@@ -278,24 +273,25 @@ div[data-testid="stSelectbox"] > div {
         font-size: 0.93rem;
     }
 
-    .small-note {
-        font-size: 0.88rem;
-    }
-
     .result-title {
         font-size: 1.05rem;
     }
 
-    .badge {
-        font-size: 0.76rem;
-        padding: 0.2rem 0.5rem;
+    .small-note {
+        font-size: 0.9rem;
     }
 
-    div[data-testid="stButton"] > button {
+    .stButton > button {
         min-height: 50px;
         font-size: 1rem;
     }
 }
+
+/* ===== Streamlit余計な表示 ===== */
+header, footer {
+    visibility: hidden;
+}
+
 </style>
 """, unsafe_allow_html=True)
 
@@ -654,6 +650,7 @@ def get_upgrade_message(plan_name: str):
         return "同じ相手との流れをしっかり管理したいなら、スタンダードが向いています。"
     return "今のプランでは相手ごとの流れまで扱えます。"
 
+
 def get_model_name(plan_name: str) -> str:
     if plan_name == "無料":
         return "gpt-4.1-mini"
@@ -677,14 +674,14 @@ def render_paywall():
     """, unsafe_allow_html=True)
 
     st.markdown("### ライトプラン（月額580円想定）")
-    st.caption("返信の続き相談や、送信前の判断支援を使いたい人向けです。")
+    st.markdown("<div class='small-note'>返信の続き相談や、送信前の判断支援を使いたい人向けです。</div>", unsafe_allow_html=True)
     if stripe_light_url:
         st.link_button("ライトプランを開始する", stripe_light_url, use_container_width=True)
     else:
         st.info("Stripeリンクを設定すると、ここから購入できるようになります。")
 
     st.markdown("### スタンダードプラン（月額980円想定）")
-    st.caption("相手ごとの流れを踏まえて、より深く相談したい人向けです。")
+    st.markdown("<div class='small-note'>相手ごとの流れを踏まえて、より深く相談したい人向けです。</div>", unsafe_allow_html=True)
     if stripe_standard_url:
         st.link_button("スタンダードを開始する", stripe_standard_url, use_container_width=True)
     else:
@@ -821,12 +818,12 @@ if st.session_state.daily_total_count >= DAILY_LIMIT_ALL:
 # ----------------------------
 st.markdown('<div class="section-card">', unsafe_allow_html=True)
 st.markdown("### 入力")
-st.caption("相手のメッセージと状況を入れてください")
+st.markdown("<div class='small-note'>相手のメッセージと状況を入れてください</div>", unsafe_allow_html=True)
 st.info("👇 まずは相手のメッセージだけ入れて試してみてください")
 
 if plan_cfg["allow_partner_name"]:
     partner_name = st.text_input("相手の名前（ニックネーム）", placeholder="例：さやか、アプリの人A")
-    st.caption("このプランでは相手ごとに流れを分けて相談できます。")
+    st.markdown("<div class='small-note'>このプランでは相手ごとに流れを分けて相談できます。</div>", unsafe_allow_html=True)
 else:
     partner_name = ""
 
@@ -854,7 +851,7 @@ situation_template = st.selectbox(
     key="situation_template"
 )
 
-st.caption(f"記憶状態: {plan_cfg['memory_message']}")
+st.markdown(f"<div class='small-note'>記憶状態: {plan_cfg['memory_message']}</div>", unsafe_allow_html=True)
 
 user_message = st.text_area(
     "相手から来たメッセージ",
@@ -872,7 +869,7 @@ extra_context = st.text_area(
 
 template_text = build_template_text(situation_template)
 if template_text:
-    st.caption(f"状況テンプレ適用中: {template_text}")
+    st.markdown(f"<div class='small-note'>状況テンプレ適用中: {template_text}</div>", unsafe_allow_html=True)
 
 memory_context_preview = ""
 if st.session_state.plan == "ライト":
@@ -885,7 +882,7 @@ st.session_state.last_memory_preview = memory_context_preview
 if memory_context_preview:
     st.markdown('<div class="memory-box">', unsafe_allow_html=True)
     st.markdown("**今回の返信で考慮される記憶**")
-    st.caption("この内容を踏まえて、続きとして返信案を作ります。")
+    st.markdown("<div class='small-note'>この内容を踏まえて、続きとして返信案を作ります。</div>", unsafe_allow_html=True)
     st.text_area(
         "memory_preview",
         value=memory_context_preview,
@@ -895,13 +892,13 @@ if memory_context_preview:
     )
     st.markdown('</div>', unsafe_allow_html=True)
 elif st.session_state.plan == "無料":
-    st.caption("無料プランでは、前回までの流れは引き継がれません。")
+    st.markdown("<div class='small-note'>無料プランでは、前回までの流れは引き継がれません。</div>", unsafe_allow_html=True)
 
 c1, c2 = st.columns(2)
 with c1:
-    st.caption(f"相手メッセージ: {len(user_message)}/{MAX_USER_MESSAGE_LEN} 文字")
+    st.markdown(f"<div class='small-note'>相手メッセージ: {len(user_message)}/{MAX_USER_MESSAGE_LEN} 文字</div>", unsafe_allow_html=True)
 with c2:
-    st.caption(f"補足: {len(extra_context)}/{MAX_CONTEXT_LEN} 文字")
+    st.markdown(f"<div class='small-note'>補足: {len(extra_context)}/{MAX_CONTEXT_LEN} 文字</div>", unsafe_allow_html=True)
 
 col1, col2 = st.columns(2)
 with col1:
@@ -1208,15 +1205,15 @@ if st.session_state.result_text:
     full_copy_text = build_full_copy_text(replies, advice)
     st.code(full_copy_text, language=None)
     copy_button_component(full_copy_text, "まとめてコピー", "full_copy")
-    st.markdown('<div class="copy-help">スマホでもそのまま貼り付けやすい形です。</div>', unsafe_allow_html=True)
+    st.markdown("<div class='copy-help'>スマホでもそのまま貼り付けやすい形です。</div>", unsafe_allow_html=True)
 
     st.markdown("### 次の相談につなげる")
     if st.session_state.plan == "無料":
-        st.caption("この返信を送った後の続きも相談できますが、前回の流れは自動では引き継がれません。")
+        st.markdown("<div class='small-note'>この返信を送った後の続きも相談できますが、前回の流れは自動では引き継がれません。</div>", unsafe_allow_html=True)
     elif st.session_state.plan == "ライト":
-        st.caption("この返信を送った後の流れを、そのまま続けて相談できます。")
+        st.markdown("<div class='small-note'>この返信を送った後の流れを、そのまま続けて相談できます。</div>", unsafe_allow_html=True)
     else:
-        st.caption("同じ相手名で続ければ、この相手との流れを踏まえて相談できます。")
+        st.markdown("<div class='small-note'>同じ相手名で続ければ、この相手との流れを踏まえて相談できます。</div>", unsafe_allow_html=True)
 
     if st.session_state.plan == "無料":
         st.markdown("""
