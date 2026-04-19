@@ -25,54 +25,44 @@ page_mode = query_params.get("page", "app")
 
 
 def render_tokutei_page():
-    import streamlit as st
-
     st.title("特定商取引法に基づく表記")
 
-    st.markdown("""
-    ### ■ 販売事業者
-    小倉 拓人
+    st.subheader("販売事業者")
+    st.write("小倉　拓人")
 
-    ### ■ 運営責任者
-    小倉 拓人
+    st.subheader("運営責任者")
+    st.write("小倉　拓人")
 
-    ### ■ 所在地
-    日本国内（詳細住所は請求があった場合、遅滞なく開示いたします）
+    st.subheader("所在地")
+    st.write("日本国内（詳細住所は請求があった場合、遅滞なく開示いたします）")
 
-    ### ■ 電話番号
-    請求があった場合、遅滞なく開示いたします
+    st.subheader("メールアドレス")
+    st.write("taku.child.0228@gmail.com")
 
-    ### ■ メールアドレス
-    taku.child.0228@gmail.com
+    st.subheader("販売価格")
+    st.write("ライトプラン：月額580円（税込）")
+    st.write("スタンダードプラン：月額980円（税込）")
 
-    ### ■ サービス内容
-    本サービスは、恋愛相談を支援するAI Webアプリです。  
-    ユーザーが入力したメッセージに対して、AIが返信案の提案、送信前の判断、関係性の見立て、次の行動の提案を行います。
+    st.subheader("商品代金以外の必要料金")
+    st.write("インターネット接続料金、通信料金等はお客様のご負担となります。")
 
-    ### ■ 販売価格
-    ライトプラン：月額580円（税込）  
-    スタンダードプラン：月額980円（税込）
+    st.subheader("支払方法")
+    st.write("クレジットカード決済（Stripe）")
 
-    ### ■ 商品代金以外の必要料金
-    インターネット接続料金、通信料金等はお客様のご負担となります。
+    st.subheader("支払時期")
+    st.write("サブスクリプション申込時に決済され、その後は契約内容に応じて毎月自動更新されます。")
 
-    ### ■ 支払方法
-    クレジットカード決済（Stripe）
+    st.subheader("サービス提供時期")
+    st.write("決済完了後、直ちに利用可能です。")
 
-    ### ■ 支払時期
-    サブスクリプション申込時に課金され、その後は毎月自動更新されます。
+    st.subheader("返品・キャンセルについて")
+    st.write("デジタルサービスの性質上、購入後の返品・返金には原則として応じられません。")
+    st.write("解約は次回更新日前までに所定の方法で行うことで、翌月以降の請求を停止できます。")
 
-    ### ■ サービス提供時期
-    決済完了後、直ちに利用可能です。
+    st.subheader("動作環境")
+    st.write("インターネット接続可能なスマートフォンまたはPCの最新ブラウザ環境")
 
-    ### ■ 返品・キャンセルについて
-    デジタルサービスの特性上、購入後の返金は原則として行っておりません。  
-    解約はStripeの管理画面またはメールにて行えます。  
-    解約後は次回更新以降の請求は発生しません。
-
-    ### ■ 動作環境
-    インターネット接続可能なスマートフォンまたはPCの最新ブラウザ
-    """)
+    st.link_button("↩️ アプリに戻る", "./")
 
 
 if page_mode == "law":
@@ -326,16 +316,10 @@ api_key = os.getenv("OPENAI_API_KEY")
 access_code = os.getenv("APP_ACCESS_CODE")
 stripe_light_url = os.getenv("STRIPE_LIGHT_URL", "")
 stripe_standard_url = os.getenv("STRIPE_STANDARD_URL", "")
+#review_mode = os.getenv("REVIEW_MODE", "false").lower() == "true"
+review_mode = True
 
-if not api_key:
-    st.error("OPENAI_API_KEY が設定されていません。")
-    st.stop()
-
-if not access_code:
-    st.error("APP_ACCESS_CODE が設定されていません。")
-    st.stop()
-
-client = OpenAI(api_key=api_key)
+client = OpenAI(api_key=api_key) if api_key else None
 
 # ----------------------------
 # セッション状態初期化
@@ -701,7 +685,7 @@ def render_paywall():
 # ----------------------------
 # 合言葉チェック
 # ----------------------------
-if not st.session_state.is_unlocked:
+if not review_mode and not st.session_state.is_unlocked:
     st.markdown('<div class="section-card">', unsafe_allow_html=True)
     st.markdown("### 利用コードを入力してください")
     code_input = st.text_input("アクセスコード", type="password")
@@ -1014,6 +998,10 @@ system_prompt = """
 # 生成処理
 # ----------------------------
 if generate_button:
+    if not api_key or client is None:
+        st.error("現在は閲覧用公開モードです。AI生成はまだ有効化されていません。")
+        st.stop()
+
     now = time.time()
     elapsed = now - st.session_state.last_request_time
 
@@ -1281,3 +1269,13 @@ if st.session_state.result_text:
     remaining_daily = max(DAILY_LIMIT_ALL - st.session_state.daily_total_count, 0)
     st.info(f"現在のプラン: {st.session_state.plan} / このセッション残り: {remaining_session} 回 / 今日の全体残り: {remaining_daily} 回")
     st.markdown("</div>", unsafe_allow_html=True)
+
+# ----------------------------
+# フッターリンク
+# ----------------------------
+st.markdown("""
+<hr class="soft">
+<div style="text-align:center; font-size:0.9rem; line-height:1.9;">
+    <a href="?page=law">特定商取引法に基づく表記</a>
+</div>
+""", unsafe_allow_html=True)
