@@ -77,15 +77,14 @@ st.markdown("""
 
 /* ===== レイアウト（最重要） ===== */
 .block-container {
-    padding-top: 5.5rem;
+    padding-top: 6.5rem;
     padding-bottom: 2rem;
     max-width: 860px;
 }
 
-/* スマホ用 */
 @media (max-width: 640px) {
     .block-container {
-        padding-top: 6.5rem;
+        padding-top: 8.2rem;
         padding-left: 0.7rem;
         padding-right: 0.7rem;
         padding-bottom: 1.5rem;
