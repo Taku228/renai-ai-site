@@ -352,6 +352,7 @@ defaults = {
     "partner_histories": {},
     "last_memory_preview": "",
     "show_paywall": False,
+    "is_first_time": True,
     "judgement": {
         "interest_score": "",
         "safety_score": "",
@@ -660,7 +661,7 @@ def render_paywall():
     st.markdown("""
     <div class="paywall-box">
         <div style="font-size:1.05rem; font-weight:800; margin-bottom:0.4rem;">
-            🔒 この先は有料機能です
+            🔒 続きは有料機能です
         </div>
         <div style="line-height:1.8;">
             この返信について、さらに次の内容を確認できます。<br>
@@ -673,14 +674,14 @@ def render_paywall():
     """, unsafe_allow_html=True)
 
     st.markdown("### ライトプラン（月額580円想定）")
-    st.markdown("<div class='small-note'>返信の続き相談や、送信前の判断支援を使いたい人向けです。</div>", unsafe_allow_html=True)
+    st.markdown("<div class='small-note'>送信前の判断を見ながら、失敗しにくく進めたい人向けです。</div>", unsafe_allow_html=True)
     if stripe_light_url:
         st.link_button("ライトプランを開始する", stripe_light_url, use_container_width=True)
     else:
         st.info("Stripeリンクを設定すると、ここから購入できるようになります。")
 
     st.markdown("### スタンダードプラン（月額980円想定）")
-    st.markdown("<div class='small-note'>相手ごとの流れを踏まえて、より深く相談したい人向けです。</div>", unsafe_allow_html=True)
+    st.markdown("<div class='small-note'>同じ相手との流れまで踏まえて、本気で相談したい人向けです。</div>", unsafe_allow_html=True)
     if stripe_standard_url:
         st.link_button("スタンダードを開始する", stripe_standard_url, use_container_width=True)
     else:
@@ -1068,7 +1069,7 @@ if generate_button:
             prompt += "\nラベル（無難・やさしめ・少し攻め等）は書かないでください。"
             prompt += "\n返信案は必ず3つ、改行区切りで、各案に文章を含めて出力してください。"
 
-            if st.session_state.plan == "無料":
+            if st.session_state.plan == "無料" and not st.session_state.is_first_time:
                 prompt += "\n無料プランでは判断パートは省略してください。"
                 prompt += "\n無料プランでは各返信案の『狙い』も省略してください。"
                 prompt += "\n無料プランでは返信案3つと短いアドバイスだけを出してください。"
@@ -1083,7 +1084,7 @@ if generate_button:
 
             response = client.responses.create(
                 model=model_name,
-                max_output_tokens=220 if st.session_state.plan == "無料" else 360,
+                max_output_tokens=320 if (st.session_state.plan == "無料" and st.session_state.is_first_time) else (220 if st.session_state.plan == "無料" else 360),
                 input=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": prompt}
@@ -1106,6 +1107,9 @@ if generate_button:
             st.session_state.usage_count += 1
             st.session_state.daily_total_count += 1
             st.session_state.last_request_time = time.time()
+
+            if st.session_state.is_first_time:
+                st.session_state.is_first_time = False
 
             save_history(
                 plan_name=st.session_state.plan,
@@ -1146,41 +1150,51 @@ if st.session_state.result_text:
 
     judgement = st.session_state.judgement
 
-    if st.session_state.plan != "無料" and any(judgement.values()):
+    if st.session_state.plan != "無料" or st.session_state.is_first_time:
+        if any(judgement.values()):
+            st.markdown("""
+            <div class="judgement-box">
+                <div style="font-weight:800; margin-bottom:0.45rem;">判断</div>
+            """, unsafe_allow_html=True)
+
+            if judgement.get("interest_score"):
+                st.markdown(f"<div class='meter-row'>{html.escape(judgement['interest_score'])}</div>", unsafe_allow_html=True)
+            if judgement.get("safety_score"):
+                st.markdown(f"<div class='meter-row'>{html.escape(judgement['safety_score'])}</div>", unsafe_allow_html=True)
+            if judgement.get("push_pull"):
+                st.markdown(f"<div class='meter-row'>{html.escape(judgement['push_pull'])}</div>", unsafe_allow_html=True)
+            if judgement.get("temperature"):
+                st.markdown(f"<div class='meter-row'>{html.escape(judgement['temperature'])}</div>", unsafe_allow_html=True)
+
+            st.markdown("</div>", unsafe_allow_html=True)
+
+    elif st.session_state.plan == "無料" and not st.session_state.is_first_time:
         st.markdown("""
         <div class="judgement-box">
-            <div style="font-weight:800; margin-bottom:0.45rem;">判断</div>
-        """, unsafe_allow_html=True)
-
-        if judgement.get("interest_score"):
-            st.markdown(f"<div class='meter-row'>{html.escape(judgement['interest_score'])}</div>", unsafe_allow_html=True)
-        if judgement.get("safety_score"):
-            st.markdown(f"<div class='meter-row'>{html.escape(judgement['safety_score'])}</div>", unsafe_allow_html=True)
-        if judgement.get("push_pull"):
-            st.markdown(f"<div class='meter-row'>{html.escape(judgement['push_pull'])}</div>", unsafe_allow_html=True)
-        if judgement.get("temperature"):
-            st.markdown(f"<div class='meter-row'>{html.escape(judgement['temperature'])}</div>", unsafe_allow_html=True)
-
-        st.markdown("</div>", unsafe_allow_html=True)
-
-    elif st.session_state.plan == "無料":
-        st.markdown("""
-        <div class="judgement-box">
-            <div style="font-weight:800; margin-bottom:0.45rem;">🔒 送る前の判断</div>
+            <div style="font-weight:800; margin-bottom:0.45rem;">🔒 この返信、送って大丈夫？</div>
             <div style="line-height:1.8;">
-                この返信の安全度、脈あり度、押すべきか引くべきかは<br>
+                ・嫌われないか<br>
+                ・脈ありかどうか<br>
+                ・押すべきか引くべきか<br>
+                ・次にどう動くべきか<br><br>
                 有料プランで確認できます。
             </div>
         </div>
         """, unsafe_allow_html=True)
 
+        st.markdown("""
+        <div class="small-note" style="margin-bottom:0.6rem;">
+            この返信で嫌われないか、不自然に見えないかを確認したい人向けです。
+        </div>
+        """, unsafe_allow_html=True)
+
         col_a, col_b = st.columns(2)
         with col_a:
-            if st.button("この返信を評価する（有料）", use_container_width=True):
+            if st.button("この返信を評価する", use_container_width=True):
                 st.session_state.show_paywall = True
                 st.rerun()
         with col_b:
-            if st.button("次の一手を知る（有料）", use_container_width=True):
+            if st.button("次の一手を知る", use_container_width=True):
                 st.session_state.show_paywall = True
                 st.rerun()
 
