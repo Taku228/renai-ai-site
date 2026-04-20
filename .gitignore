@@ -1,4 +1,7 @@
-.venv/
 __pycache__/
 *.pyc
 .streamlit/secrets.toml
+payments_db.json
+.env
+venv/
+.venv/
