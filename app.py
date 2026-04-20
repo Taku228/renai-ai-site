@@ -500,27 +500,41 @@ def parse_result_text(text: str):
 
         current_intent = ""
         for line in lines:
+            # 狙い行
             intent_match = re.match(r"^(?:\d+[.)]|[①-③]|\-|\*)?\s*狙い[:：]\s*(.+)$", line)
             if intent_match:
                 current_intent = intent_match.group(1).strip()
                 continue
 
+            # 狙い行そのものは返信本文として絶対に拾わない
+            if re.search(r"狙い[:：]", line):
+                continue
+
+            # 返信案本体
             reply_match = re.match(r"^(?:\d+[.)]|[①-③]|\-|\*)\s*(.+)$", line)
             if reply_match:
                 cleaned = reply_match.group(1).strip()
                 cleaned = re.sub(r"^返信案\d*[:：]?\s*", "", cleaned).strip()
                 cleaned = re.sub(r"^（[^）]+）\s*", "", cleaned).strip()
+
+                # 狙い混入を除外
+                if re.search(r"^狙い[:：]", cleaned):
+                    continue
+
                 if cleaned and len(cleaned) >= 6:
                     replies.append(cleaned)
                     reply_intents.append(current_intent if current_intent else "")
                     current_intent = ""
 
+        # フォールバック
         if len(replies) == 0:
             for line in lines:
-                if "狙い" in line:
+                if re.search(r"狙い[:：]", line):
                     continue
                 cleaned = re.sub(r"^返信案\d*[:：]?\s*", "", line).strip()
                 cleaned = re.sub(r"^（[^）]+）\s*", "", cleaned).strip()
+                if re.search(r"^狙い[:：]", cleaned):
+                    continue
                 if cleaned and len(cleaned) >= 8:
                     replies.append(cleaned)
                     reply_intents.append("")
@@ -1122,6 +1136,8 @@ if generate_button:
             prompt += "\n3. 返信文"
             prompt += "\n箇条書き記号（①、-、*）は使わないでください。"
             prompt += "\n判断結果は、ユーザーがすぐ理解できる短い表現で出してください。"
+            prompt += "\n『狙い：...』は必ず返信文とは別の行にしてください。"
+            prompt += "\n返信文の先頭に『狙い：』を入れないでください。"
 
             if st.session_state.plan == "無料" and not st.session_state.is_first_time:
                 prompt += "\n無料プランでは判断パートは省略してください。"
