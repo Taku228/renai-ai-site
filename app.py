@@ -500,19 +500,35 @@ def parse_result_text(text: str):
 
         current_intent = ""
         for line in lines:
-            intent_match = re.match(r"^\d+\.\s*狙い[:：]\s*(.+)$", line)
+            # 狙い行
+            intent_match = re.match(r"^(?:\d+[.)]|[①-③]|\-|\*)?\s*狙い[:：]\s*(.+)$", line)
             if intent_match:
                 current_intent = intent_match.group(1).strip()
                 continue
 
-            reply_match = re.match(r"^\d+\.\s*(.+)$", line)
+            # 返信案本体
+            reply_match = re.match(r"^(?:\d+[.)]|[①-③]|\-|\*)\s*(.+)$", line)
             if reply_match:
                 cleaned = reply_match.group(1).strip()
+                cleaned = re.sub(r"^返信案\d*[:：]?\s*", "", cleaned).strip()
                 cleaned = re.sub(r"^（[^）]+）\s*", "", cleaned).strip()
                 if cleaned and len(cleaned) >= 6:
                     replies.append(cleaned)
                     reply_intents.append(current_intent if current_intent else "")
                     current_intent = ""
+
+        # フォールバック: 箇条書きで取れなかった場合、行そのものを候補化
+        if len(replies) == 0:
+            for line in lines:
+                if "狙い" in line:
+                    continue
+                cleaned = re.sub(r"^返信案\d*[:：]?\s*", "", line).strip()
+                cleaned = re.sub(r"^（[^）]+）\s*", "", cleaned).strip()
+                if cleaned and len(cleaned) >= 8:
+                    replies.append(cleaned)
+                    reply_intents.append("")
+                    if len(replies) >= 3:
+                        break
 
     return summary, replies[:3], reply_intents[:3], advice, judgement
 
@@ -1070,6 +1086,11 @@ if generate_button:
             prompt += "\nラベル（無難・やさしめ・少し攻め等）は書かないでください。"
             prompt += "\n返信案は必ず3つ、改行区切りで、各案に文章を含めて出力してください。"
             prompt += "\n判断結果は、ユーザーがすぐ理解できる短い表現で出してください。"
+            prompt += "\n返信案は必ず次の形式で出してください。"
+            prompt += "\n1. 返信文"
+            prompt += "\n2. 返信文"
+            prompt += "\n3. 返信文"
+            prompt += "\n箇条書き記号（①、-、*）は使わないでください。"
 
             if st.session_state.plan == "無料" and not st.session_state.is_first_time:
                 prompt += "\n無料プランでは判断パートは省略してください。"
@@ -1205,6 +1226,9 @@ if st.session_state.result_text:
     reply_intents = st.session_state.reply_intents
     advice = st.session_state.advice_text
 
+    if not replies:
+        st.warning("返信案の解析に失敗しました。下の『AIの元の出力を表示』をご確認ください。")
+    
     if replies:
         st.markdown("### 返信案")
         for idx, reply in enumerate(replies, start=1):
