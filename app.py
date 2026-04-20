@@ -500,13 +500,11 @@ def parse_result_text(text: str):
 
         current_intent = ""
         for line in lines:
-            # 狙い行
             intent_match = re.match(r"^(?:\d+[.)]|[①-③]|\-|\*)?\s*狙い[:：]\s*(.+)$", line)
             if intent_match:
                 current_intent = intent_match.group(1).strip()
                 continue
 
-            # 返信案本体
             reply_match = re.match(r"^(?:\d+[.)]|[①-③]|\-|\*)\s*(.+)$", line)
             if reply_match:
                 cleaned = reply_match.group(1).strip()
@@ -517,7 +515,6 @@ def parse_result_text(text: str):
                     reply_intents.append(current_intent if current_intent else "")
                     current_intent = ""
 
-        # フォールバック: 箇条書きで取れなかった場合、行そのものを候補化
         if len(replies) == 0:
             for line in lines:
                 if "狙い" in line:
@@ -664,6 +661,40 @@ def get_model_name(plan_name: str) -> str:
     if plan_name == "無料":
         return "gpt-4.1-mini"
     return "gpt-4.1"
+
+
+def should_lock_continuous_judgement(plan_name: str) -> bool:
+    return plan_name == "ライト" and st.session_state.usage_count >= 1
+
+
+def render_standard_upgrade_box():
+    st.markdown("""
+    <div class="upgrade-box">
+        <div style="font-size:1.02rem; font-weight:800; margin-bottom:0.45rem;">
+            🔒 この先の「流れを踏まえた判断」はスタンダード向きです
+        </div>
+        <div style="line-height:1.8;">
+            今回の相談は、前回までの流れを踏まえて判断するほど価値が上がります。<br><br>
+            スタンダードでは、<br>
+            ・脈あり度の変化<br>
+            ・関係の進み方<br>
+            ・今は押すべきか待つべきか<br>
+            ・次の一手<br>
+            を、同じ相手との流れを踏まえて確認できます。
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown("""
+    <div class="small-note" style="margin-bottom:0.7rem;">
+        単発の返信提案ではなく、「この相手との流れで今どう動くべきか」を見たい人向けです。
+    </div>
+    """, unsafe_allow_html=True)
+
+    if stripe_standard_url:
+        st.link_button("スタンダードにアップグレードする", stripe_standard_url, use_container_width=True)
+    else:
+        st.button("スタンダードにアップグレードする", use_container_width=True)
 
 
 def render_paywall():
@@ -1085,12 +1116,12 @@ if generate_button:
             prompt += "\n返信案はそのままコピペして使える完成文にしてください。"
             prompt += "\nラベル（無難・やさしめ・少し攻め等）は書かないでください。"
             prompt += "\n返信案は必ず3つ、改行区切りで、各案に文章を含めて出力してください。"
-            prompt += "\n判断結果は、ユーザーがすぐ理解できる短い表現で出してください。"
             prompt += "\n返信案は必ず次の形式で出してください。"
             prompt += "\n1. 返信文"
             prompt += "\n2. 返信文"
             prompt += "\n3. 返信文"
             prompt += "\n箇条書き記号（①、-、*）は使わないでください。"
+            prompt += "\n判断結果は、ユーザーがすぐ理解できる短い表現で出してください。"
 
             if st.session_state.plan == "無料" and not st.session_state.is_first_time:
                 prompt += "\n無料プランでは判断パートは省略してください。"
@@ -1173,7 +1204,10 @@ if st.session_state.result_text:
 
     judgement = st.session_state.judgement
 
-    if st.session_state.plan != "無料" or st.session_state.is_first_time:
+    if should_lock_continuous_judgement(st.session_state.plan):
+        render_standard_upgrade_box()
+
+    elif st.session_state.plan != "無料" or st.session_state.is_first_time:
         if any(judgement.values()):
             st.markdown("""
             <div class="judgement-box">
@@ -1228,7 +1262,7 @@ if st.session_state.result_text:
 
     if not replies:
         st.warning("返信案の解析に失敗しました。下の『AIの元の出力を表示』をご確認ください。")
-    
+
     if replies:
         st.markdown("### 返信案")
         for idx, reply in enumerate(replies, start=1):
@@ -1251,7 +1285,7 @@ if st.session_state.result_text:
     if st.session_state.plan == "無料":
         st.markdown("<div class='small-note'>この返信を送った後の続きも相談できますが、前回の流れは自動では引き継がれません。</div>", unsafe_allow_html=True)
     elif st.session_state.plan == "ライト":
-        st.markdown("<div class='small-note'>この返信を送った後の流れを、そのまま続けて相談できます。</div>", unsafe_allow_html=True)
+        st.markdown("<div class='small-note'>この返信の続きも相談できます。さらに相手との流れを踏まえた深い判断は、スタンダードで使えます。</div>", unsafe_allow_html=True)
     else:
         st.markdown("<div class='small-note'>同じ相手名で続ければ、この相手との流れを踏まえて相談できます。</div>", unsafe_allow_html=True)
 
