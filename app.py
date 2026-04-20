@@ -316,8 +316,7 @@ api_key = os.getenv("OPENAI_API_KEY")
 access_code = os.getenv("APP_ACCESS_CODE")
 stripe_light_url = os.getenv("STRIPE_LIGHT_URL", "")
 stripe_standard_url = os.getenv("STRIPE_STANDARD_URL", "")
-#review_mode = os.getenv("REVIEW_MODE", "false").lower() == "true"
-review_mode = True
+review_mode = os.getenv("REVIEW_MODE", "false").lower() == "true"
 
 client = OpenAI(api_key=api_key) if api_key else None
 
@@ -658,10 +657,11 @@ def render_paywall():
             🔒 続きは有料機能です
         </div>
         <div style="line-height:1.8;">
-            この返信について、さらに次の内容を確認できます。<br>
-            ・この返信の安全度<br>
+            有料プランでは、返信を作るだけでなく<br>
+            「この返信を送って大丈夫か」を判断できます。<br><br>
+            ・安全度の評価<br>
             ・脈あり度の見立て<br>
-            ・今は押すべきか引くべきか<br>
+            ・押すべきか / 少し待つべきか<br>
             ・次の一手の提案
         </div>
     </div>
@@ -931,6 +931,9 @@ system_prompt = """
 - 温度感も短く出す
 - すべて短く、わかりやすく書く
 - 断定しすぎない
+- 判断には短い理由がにじむように書く
+- ユーザーが3秒で理解できる表現にする
+- 難しい言い方は避ける
 
 ▼返信案の作り方（かなり重要）
 - 3つとも必ずキャラを変える
@@ -1066,6 +1069,7 @@ if generate_button:
             prompt += "\n返信案はそのままコピペして使える完成文にしてください。"
             prompt += "\nラベル（無難・やさしめ・少し攻め等）は書かないでください。"
             prompt += "\n返信案は必ず3つ、改行区切りで、各案に文章を含めて出力してください。"
+            prompt += "\n判断結果は、ユーザーがすぐ理解できる短い表現で出してください。"
 
             if st.session_state.plan == "無料" and not st.session_state.is_first_time:
                 prompt += "\n無料プランでは判断パートは省略してください。"
@@ -1152,17 +1156,17 @@ if st.session_state.result_text:
         if any(judgement.values()):
             st.markdown("""
             <div class="judgement-box">
-                <div style="font-weight:800; margin-bottom:0.45rem;">判断</div>
+                <div style="font-weight:800; margin-bottom:0.55rem;">判断結果</div>
             """, unsafe_allow_html=True)
 
-            if judgement.get("interest_score"):
-                st.markdown(f"<div class='meter-row'>{html.escape(judgement['interest_score'])}</div>", unsafe_allow_html=True)
             if judgement.get("safety_score"):
-                st.markdown(f"<div class='meter-row'>{html.escape(judgement['safety_score'])}</div>", unsafe_allow_html=True)
+                st.markdown(f"<div class='meter-row'><b>安全度：</b>{html.escape(judgement['safety_score'])}</div>", unsafe_allow_html=True)
+            if judgement.get("interest_score"):
+                st.markdown(f"<div class='meter-row'><b>脈あり度：</b>{html.escape(judgement['interest_score'])}</div>", unsafe_allow_html=True)
             if judgement.get("push_pull"):
-                st.markdown(f"<div class='meter-row'>{html.escape(judgement['push_pull'])}</div>", unsafe_allow_html=True)
+                st.markdown(f"<div class='meter-row'><b>おすすめ行動：</b>{html.escape(judgement['push_pull'])}</div>", unsafe_allow_html=True)
             if judgement.get("temperature"):
-                st.markdown(f"<div class='meter-row'>{html.escape(judgement['temperature'])}</div>", unsafe_allow_html=True)
+                st.markdown(f"<div class='meter-row'><b>相手の温度感：</b>{html.escape(judgement['temperature'])}</div>", unsafe_allow_html=True)
 
             st.markdown("</div>", unsafe_allow_html=True)
 
@@ -1171,28 +1175,29 @@ if st.session_state.result_text:
         <div class="judgement-box">
             <div style="font-weight:800; margin-bottom:0.45rem;">🔒 この返信、送って大丈夫？</div>
             <div style="line-height:1.8;">
-                ・嫌われないか<br>
-                ・脈ありかどうか<br>
-                ・押すべきか引くべきか<br>
-                ・次にどう動くべきか<br><br>
-                有料プランで確認できます。
+                このまま送って問題ないかを、AIが判断します。<br><br>
+                ・嫌われるリスク<br>
+                ・脈あり度<br>
+                ・押すべきか、少し待つべきか<br>
+                ・次の一手<br><br>
+                続きは有料プランで確認できます。
             </div>
         </div>
         """, unsafe_allow_html=True)
 
         st.markdown("""
         <div class="small-note" style="margin-bottom:0.6rem;">
-            この返信で嫌われないか、不自然に見えないかを確認したい人向けです。
+            返信を作るだけでなく、「送って大丈夫か」を確認したい人向けです。
         </div>
         """, unsafe_allow_html=True)
 
         col_a, col_b = st.columns(2)
         with col_a:
-            if st.button("この返信を評価する", use_container_width=True):
+            if st.button("この返信を評価する（有料）", use_container_width=True):
                 st.session_state.show_paywall = True
                 st.rerun()
         with col_b:
-            if st.button("次の一手を知る", use_container_width=True):
+            if st.button("次の一手を知る（有料）", use_container_width=True):
                 st.session_state.show_paywall = True
                 st.rerun()
 
