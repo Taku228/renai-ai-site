@@ -5,8 +5,8 @@ import stripe
 
 app = Flask(__name__)
 
-stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
-webhook_secret = os.getenv("STRIPE_WEBHOOK_SECRET")
+stripe.api_key = os.getenv("STRIPE_SECRET_KEY", "")
+webhook_secret = os.getenv("STRIPE_WEBHOOK_SECRET", "")
 db_path = os.getenv("PAYMENTS_DB_PATH", "payments_db.json")
 
 PRICE_TO_PLAN = {
@@ -27,6 +27,26 @@ def save_db(db):
         json.dump(db, f, ensure_ascii=False, indent=2)
 
 
+@app.get("/health")
+def health():
+    return jsonify({"ok": True})
+
+
+@app.get("/payment-status")
+def payment_status():
+    email = request.args.get("email", "").strip().lower()
+    if not email:
+        return jsonify({"ok": False, "error": "email is required"}), 400
+
+    db = load_db()
+    record = db.get(email, {"plan": "無料", "status": "none"})
+    return jsonify({
+        "ok": True,
+        "email": email,
+        "record": record,
+    })
+
+
 @app.post("/stripe-webhook")
 def stripe_webhook():
     payload = request.data
@@ -40,7 +60,7 @@ def stripe_webhook():
         )
     except Exception as e:
         print("webhook verify error:", str(e))
-        return jsonify({"ok": False}), 400
+        return jsonify({"ok": False, "error": str(e)}), 400
 
     if event["type"] == "checkout.session.completed":
         session = event["data"]["object"]
@@ -90,26 +110,6 @@ def stripe_webhook():
             except Exception as e:
                 print("subscription delete error:", str(e))
 
-    return jsonify({"ok": True})
-
-
-@app.get("/payment-status")
-def payment_status():
-    email = request.args.get("email", "").strip().lower()
-    if not email:
-        return jsonify({"ok": False, "error": "email is required"}), 400
-
-    db = load_db()
-    record = db.get(email, {"plan": "無料", "status": "none"})
-    return jsonify({
-        "ok": True,
-        "email": email,
-        "record": record,
-    })
-
-
-@app.get("/health")
-def health():
     return jsonify({"ok": True})
 
 
