@@ -51,7 +51,12 @@ st.markdown(
     unsafe_allow_html=True
 )
 if st.button("購入状態を確認する", use_container_width=True):
-    st.session_state.paid_plan = resolve_paid_plan_from_email(customer_email)
+    resolved_plan = resolve_paid_plan_from_email(customer_email)
+    st.session_state.paid_plan = resolved_plan
+
+    if resolved_plan != "無料":
+        st.session_state.plan = resolved_plan
+
     st.rerun()
 if st.session_state.paid_plan != "無料":
     st.success(f"購入確認済みです。現在の有効プラン: {st.session_state.paid_plan}")
