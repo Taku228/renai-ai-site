@@ -4,6 +4,7 @@ from flask import Flask, request, jsonify
 import stripe
 
 app = Flask(__name__)
+
 stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
 webhook_secret = os.getenv("STRIPE_WEBHOOK_SECRET")
 db_path = os.getenv("PAYMENTS_DB_PATH", "payments_db.json")
@@ -32,38 +33,83 @@ def stripe_webhook():
     sig_header = request.headers.get("Stripe-Signature", "")
 
     try:
-        event = stripe.Webhook.construct_event(payload=payload, sig_header=sig_header, secret=webhook_secret)
-    except Exception:
+        event = stripe.Webhook.construct_event(
+            payload=payload,
+            sig_header=sig_header,
+            secret=webhook_secret,
+        )
+    except Exception as e:
+        print("webhook verify error:", str(e))
         return jsonify({"ok": False}), 400
 
     if event["type"] == "checkout.session.completed":
         session = event["data"]["object"]
-        customer_email = (session.get("customer_details", {}) or {}).get("email") or session.get("customer_email")
-        line_items = stripe.checkout.Session.list_line_items(session["id"], limit=10)
+
+        customer_email = (
+            (session.get("customer_details", {}) or {}).get("email")
+            or session.get("customer_email")
+        )
+
         plan_name = "無料"
-        for item in line_items.data:
-            price_id = item["price"]["id"]
-            if price_id in PRICE_TO_PLAN:
-                plan_name = PRICE_TO_PLAN[price_id]
-                break
+
+        try:
+            line_items = stripe.checkout.Session.list_line_items(session["id"], limit=10)
+            for item in line_items.data:
+                price_id = item["price"]["id"]
+                if price_id in PRICE_TO_PLAN:
+                    plan_name = PRICE_TO_PLAN[price_id]
+                    break
+        except Exception as e:
+            print("line_items error:", str(e))
+
         if customer_email and plan_name != "無料":
             db = load_db()
-            db[customer_email.strip().lower()] = {"plan": plan_name, "status": "active"}
+            key = customer_email.strip().lower()
+            db[key] = {
+                "plan": plan_name,
+                "status": "active",
+            }
             save_db(db)
+            print("saved payment:", key, db[key])
 
     elif event["type"] == "customer.subscription.deleted":
         subscription = event["data"]["object"]
         customer_id = subscription.get("customer")
-        if customer_id:
-            customer = stripe.Customer.retrieve(customer_id)
-            email = customer.get("email")
-            if email:
-                db = load_db()
-                key = email.strip().lower()
-                if key in db:
-                    db[key]["status"] = "canceled"
-                    save_db(db)
 
+        if customer_id:
+            try:
+                customer = stripe.Customer.retrieve(customer_id)
+                email = customer.get("email")
+                if email:
+                    db = load_db()
+                    key = email.strip().lower()
+                    if key in db:
+                        db[key]["status"] = "canceled"
+                        save_db(db)
+                        print("canceled payment:", key, db[key])
+            except Exception as e:
+                print("subscription delete error:", str(e))
+
+    return jsonify({"ok": True})
+
+
+@app.get("/payment-status")
+def payment_status():
+    email = request.args.get("email", "").strip().lower()
+    if not email:
+        return jsonify({"ok": False, "error": "email is required"}), 400
+
+    db = load_db()
+    record = db.get(email, {"plan": "無料", "status": "none"})
+    return jsonify({
+        "ok": True,
+        "email": email,
+        "record": record,
+    })
+
+
+@app.get("/health")
+def health():
     return jsonify({"ok": True})
 
 

@@ -1,24 +1,30 @@
-import json
 import os
-from typing import Dict
+import requests
 
-from .config import PAYMENTS_DB_PATH
-
-
-def load_payments_db() -> Dict[str, dict]:
-    if not os.path.exists(PAYMENTS_DB_PATH):
-        return {}
-    with open(PAYMENTS_DB_PATH, "r", encoding="utf-8") as f:
-        return json.load(f)
+PAYMENT_STATUS_API_URL = os.getenv("PAYMENT_STATUS_API_URL", "").strip()
 
 
 def resolve_paid_plan_from_email(email: str) -> str:
     if not email:
         return "無料"
-    db = load_payments_db()
-    record = db.get(email.strip().lower())
-    if not record:
+
+    if not PAYMENT_STATUS_API_URL:
         return "無料"
-    if record.get("status") != "active":
+
+    try:
+        resp = requests.get(
+            PAYMENT_STATUS_API_URL,
+            params={"email": email.strip().lower()},
+            timeout=10,
+        )
+        resp.raise_for_status()
+        data = resp.json()
+        record = data.get("record", {})
+
+        if record.get("status") == "active":
+            return record.get("plan", "無料")
+
         return "無料"
-    return record.get("plan", "無料")
+    except Exception as e:
+        print("resolve_paid_plan_from_email error:", str(e))
+        return "無料"

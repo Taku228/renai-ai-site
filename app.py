@@ -55,6 +55,24 @@ else:
     st.markdown("<div class='small-note'>未購入の場合は無料プランとして利用されます。</div>", unsafe_allow_html=True)
 st.markdown("</div>", unsafe_allow_html=True)
 
+# ----------------------------
+# 常設の課金導線（←これが足りなかった）
+# ----------------------------
+st.markdown('<div class="section-card">', unsafe_allow_html=True)
+st.markdown("### 有料プラン")
+
+col_paid_1, col_paid_2 = st.columns(2)
+
+with col_paid_1:
+    if settings["stripe_light_url"]:
+        st.link_button("ライトプランを購入する（月額580円）", settings["stripe_light_url"], use_container_width=True)
+
+with col_paid_2:
+    if settings["stripe_standard_url"]:
+        st.link_button("スタンダードプランを購入する（月額980円）", settings["stripe_standard_url"], use_container_width=True)
+
+st.markdown("</div>", unsafe_allow_html=True)
+
 # Plan section
 st.markdown('<div class="section-card">', unsafe_allow_html=True)
 st.markdown("### プラン")
