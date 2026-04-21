@@ -62,10 +62,22 @@ def stripe_webhook():
         if event["type"] == "checkout.session.completed":
             session = event["data"]["object"]
 
-            customer_email = (
-                (session.get("customer_details", {}) or {}).get("email")
-                or session.get("customer_email")
-            )
+            customer_email = None
+
+            # customer_details がある場合
+            try:
+                customer_details = session["customer_details"]
+                if customer_details:
+                    customer_email = customer_details["email"]
+            except Exception:
+                pass
+
+            # customer_details で取れなければ customer_email を試す
+            if not customer_email:
+                try:
+                    customer_email = session["customer_email"]
+                except Exception:
+                    pass
 
             plan_name = "無料"
 
@@ -78,6 +90,9 @@ def stripe_webhook():
                         break
             except Exception as e:
                 print("line_items error:", repr(e))
+
+            print("customer_email:", customer_email)
+            print("plan_name:", plan_name)
 
             if customer_email and plan_name != "無料":
                 db = load_db()
