@@ -46,6 +46,10 @@ customer_email = st.text_input(
     placeholder="例: yourmail@example.com",
 )
 st.session_state.customer_email = customer_email
+st.markdown(
+    "<div class='small-note'>Stripeで購入したときに使ったメールアドレスを入力してください。</div>",
+    unsafe_allow_html=True
+)
 if st.button("購入状態を確認する", use_container_width=True):
     st.session_state.paid_plan = resolve_paid_plan_from_email(customer_email)
     st.rerun()
@@ -55,28 +59,14 @@ else:
     st.markdown("<div class='small-note'>未購入の場合は無料プランとして利用されます。</div>", unsafe_allow_html=True)
 st.markdown("</div>", unsafe_allow_html=True)
 
-# ----------------------------
-# 常設の課金導線（←これが足りなかった）
-# ----------------------------
-st.markdown('<div class="section-card">', unsafe_allow_html=True)
-st.markdown("### 有料プラン")
-
-col_paid_1, col_paid_2 = st.columns(2)
-
-with col_paid_1:
-    if settings["stripe_light_url"]:
-        st.link_button("ライトプランを購入する（月額580円）", settings["stripe_light_url"], use_container_width=True)
-
-with col_paid_2:
-    if settings["stripe_standard_url"]:
-        st.link_button("スタンダードプランを購入する（月額980円）", settings["stripe_standard_url"], use_container_width=True)
-
-st.markdown("</div>", unsafe_allow_html=True)
-
 # Plan section
 st.markdown('<div class="section-card">', unsafe_allow_html=True)
 st.markdown("### プラン")
-selected_plan = st.selectbox("プランを選択してください", ["無料", "ライト", "スタンダード"], index=["無料", "ライト", "スタンダード"].index(st.session_state.plan))
+selected_plan = st.selectbox(
+    "プランを選択してください",
+    ["無料", "ライト", "スタンダード"],
+    index=["無料", "ライト", "スタンダード"].index(st.session_state.plan)
+)
 if selected_plan != st.session_state.plan:
     st.session_state.plan = selected_plan
     st.session_state.usage_count = 0
@@ -95,20 +85,79 @@ st.markdown("""
 <div class="plan-card"><div class="plan-title">ライト <span style="font-size:0.85rem;color:#475569;">月額580円</span></div><div class="small-note">直前の流れを踏まえて相談したい人向け。<br>『さっきこれ送ったけど次どうする？』に強い。</div></div>
 <div class="plan-card-highlight"><div class="plan-title">スタンダード ★おすすめ <span style="font-size:0.85rem;color:#475569;">月額980円</span></div><div class="small-note">同じ相手との流れを記憶。<br>毎回説明しなくてよくなる、本命向けプラン。</div></div>
 """, unsafe_allow_html=True)
-st.markdown(f"<div class='small-note'>選択中のプラン: <b>{st.session_state.plan}</b><br>現在利用できるプラン: <b>{effective_plan}</b><br>料金目安: {PLAN_CONFIG[st.session_state.plan]['price_text']}<br>記憶機能: {PLAN_CONFIG[st.session_state.plan]['memory_mode']}<br>{PLAN_CONFIG[st.session_state.plan]['memory_sales']}</div>", unsafe_allow_html=True)
+st.markdown(
+    f"<div class='small-note'>選択中のプラン: <b>{st.session_state.plan}</b><br>"
+    f"現在利用できるプラン: <b>{effective_plan}</b><br>"
+    f"料金目安: {PLAN_CONFIG[st.session_state.plan]['price_text']}<br>"
+    f"記憶機能: {PLAN_CONFIG[st.session_state.plan]['memory_mode']}<br>"
+    f"{PLAN_CONFIG[st.session_state.plan]['memory_sales']}</div>",
+    unsafe_allow_html=True
+)
 
+# 条件付きでは説明だけ出す（購入ボタンは常設導線に一本化）
 if st.session_state.plan in ["ライト", "スタンダード"] and effective_plan == "無料":
     st.markdown("""
     <div class="upgrade-box">
         <b>このプランは購入後に使えます</b><br>
         現在は無料プランとして利用中です。<br>
-        下の購入ボタンからお申し込み後、購入時のメールアドレスで購入状態を確認してください。
+        画面下の「有料プラン」から購入後、購入時のメールアドレスで購入状態を確認してください。
     </div>
     """, unsafe_allow_html=True)
-    if st.session_state.plan == "ライト" and settings["stripe_light_url"]:
-        st.link_button("ライトプランを購入する", settings["stripe_light_url"], use_container_width=True)
-    if st.session_state.plan == "スタンダード" and settings["stripe_standard_url"]:
-        st.link_button("スタンダードプランを購入する", settings["stripe_standard_url"], use_container_width=True)
+
+st.markdown("</div>", unsafe_allow_html=True)
+
+# ----------------------------
+# 常設の課金導線
+# ----------------------------
+st.markdown('<div class="section-card">', unsafe_allow_html=True)
+st.markdown("### 有料プラン")
+st.markdown(
+    "<div class='small-note'>続き相談・判断機能・相手ごとの記憶は有料プランで使えます。</div>",
+    unsafe_allow_html=True
+)
+
+col_paid_1, col_paid_2 = st.columns(2)
+
+with col_paid_1:
+    st.markdown("""
+    <div class="plan-card">
+        <div class="plan-title">ライト</div>
+        <div class="small-note">
+            月額580円<br>
+            ・直前の流れを踏まえた返信<br>
+            ・送信前の判断<br>
+            ・脈あり度の見立て
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    if settings["stripe_light_url"]:
+        st.link_button(
+            "ライトプランを購入する（月額580円）",
+            settings["stripe_light_url"],
+            use_container_width=True
+        )
+
+with col_paid_2:
+    st.markdown("""
+    <div class="plan-card-highlight">
+        <div class="plan-title">スタンダード</div>
+        <div class="small-note">
+            月額980円<br>
+            ・相手ごとの記憶<br>
+            ・継続判断<br>
+            ・次の一手の提案
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    if settings["stripe_standard_url"]:
+        st.link_button(
+            "スタンダードプランを購入する（月額980円）",
+            settings["stripe_standard_url"],
+            use_container_width=True
+        )
+
 st.markdown("</div>", unsafe_allow_html=True)
 
 remaining_session = max(session_limit - st.session_state.usage_count, 0)
@@ -276,17 +325,6 @@ if st.session_state.result_text:
     elif effective_plan != "無料" or st.session_state.is_first_time:
         if any(st.session_state.judgement.values()):
             render_judgement(st.session_state.judgement)
-    elif effective_plan == "無料" and not st.session_state.is_first_time:
-        render_free_lock()
-        col_a, col_b = st.columns(2)
-        with col_a:
-            if st.button("この返信を評価する（有料）", use_container_width=True):
-                st.session_state.show_paywall = True
-                st.rerun()
-        with col_b:
-            if st.button("次の一手を知る（有料）", use_container_width=True):
-                st.session_state.show_paywall = True
-                st.rerun()
 
     replies = st.session_state.parsed_replies
     if not replies:
@@ -329,19 +367,8 @@ if st.session_state.result_text:
         </div>
         """, unsafe_allow_html=True)
 
-    if effective_plan == "無料" and st.session_state.usage_count >= 1:
-        st.markdown("""
-        <div class="upgrade-box">
-            <b>前回の流れも踏まえて相談したいですか？</b><br>
-            ライト以上なら、直前のやり取りを考慮して次の返信を提案できます。
-        </div>
-        """, unsafe_allow_html=True)
-
     if effective_plan == "無料" and st.session_state.get("show_paywall"):
         render_paywall(settings["stripe_light_url"], settings["stripe_standard_url"])
-
-    if effective_plan != "スタンダード":
-        st.markdown(f"<div class='upgrade-box'><b>もっと続き相談をしやすくするには</b><br>{get_upgrade_message(effective_plan)}</div>", unsafe_allow_html=True)
 
     with st.expander("AIの元の出力を表示"):
         st.text_area("全文", value=st.session_state.result_text, height=260, key="raw_result_text")
